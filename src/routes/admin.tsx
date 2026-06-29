@@ -19,7 +19,7 @@ function AdminPage() {
   const stats = useMemo(() => ({
     totalRevenue: transactions.reduce((acc, tx) => acc + Number(tx.amount_paid || 0), 0),
     pendingPayments: transactions.filter(tx => tx.status === 'pending').length,
-    activeStudents: students.filter(s => s.status?.toLowerCase() === 'active').length,
+    activeStudents: students.length,
   }), [transactions, students]);
 
   const monthlyRevenue = useMemo(() => {

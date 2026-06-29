@@ -24,9 +24,9 @@ export function AuthCard({ title, subtitle, children, className = "" }: { title:
           <div className="text-sm uppercase tracking-widest opacity-80">Compssa Department • Dues Portal</div>
           <div>
             <blockquote className="text-2xl font-semibold leading-snug">
-              "Paying my Level 300 dues took less than 10 seconds. I had my receipt before I left the library."
+              "Paying my departmental dues took less than 10 seconds. The system is fast, simple, and secure."
             </blockquote>
-            <div className="mt-6 text-sm opacity-90">— Kwame A., CS Class of 2026</div>
+            <div className="mt-6 text-sm opacity-90"> - Compssa Student</div>
           </div>
           <div className="grid grid-cols-3 gap-4 text-center text-xs">
             <div className="rounded-xl bg-white/10 p-4 backdrop-blur"><div className="text-xl font-bold">2.4k+</div>Students</div>

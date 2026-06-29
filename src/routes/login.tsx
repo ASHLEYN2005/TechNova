@@ -158,7 +158,7 @@ function LoginPage() {
   };
 
   return (
-    <AuthCard title="Welcome back" subtitle="Sign in to manage your departmental dues">
+    <AuthCard title="Welcome" subtitle="Sign in to manage your departmental dues">
       <Toaster position="top-center" richColors />
       <form onSubmit={submit} className="space-y-5">
         <div className="space-y-2">

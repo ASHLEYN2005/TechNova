@@ -102,7 +102,7 @@ function PaymentPage() {
         amount: Math.round(total * 100),
         currency: "GHS",
         ref: genRef(),
-        // We wrap the call so Paystack receives a stable function
+        
         callback: (res: any) => handleSuccess(res),
         onClose: () => {
           console.log("Closed");
@@ -120,10 +120,9 @@ function PaymentPage() {
   };
 
   const options = [
-    { id: "half", title: "Half Payment", amount: 50, desc: "Pay half of one level's dues" },
     { id: "full", title: "Full Payment", amount: 100, desc: "Pay one full level (GHS 100)" },
     { id: "custom", title: "Custom Amount", amount: 0, desc: "Choose any amount" },
-    { id: "all", title: "Clear All", amount: b.outstanding, desc: "Settle your full outstanding balance" },
+    
   ] as const;
 
   return (

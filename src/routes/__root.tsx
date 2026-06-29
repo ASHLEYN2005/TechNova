@@ -121,7 +121,6 @@ function RootComponent() {
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    // Ensure we know the auth state before showing the App UI
     supabase.auth.getSession().then(() => {
       setIsAuthReady(true);
     });

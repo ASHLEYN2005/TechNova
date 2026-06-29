@@ -51,7 +51,7 @@ function DashboardPage() {
 
   return (
     <AppShell 
-      title={`Welcome back, ${student?.full_name?.split(" ")[0] ?? "User"}`} 
+      title={`Welcome, ${student?.full_name?.split(" ")[0] ?? "User"}`} 
       subtitle="Here's where your dues stand today." 
       actions={
         <Link to="/payment">

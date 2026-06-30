@@ -46,6 +46,23 @@ function DashboardPage() {
 
   const b = balances;
 
+  // Read directly from the raw DB field set by the update_student_balance
+  // trigger. Do NOT fall back to b.outstanding — that value is clamped
+  // with Math.max(0, ...) in useAppData/AppContext and can never be
+  // negative, which would silently break the "fully paid" detection below.
+  const rawOutstandingNum = Number(student?.outstanding_balance ?? 0);
+  const isFullyPaid = rawOutstandingNum < 0; // negative DB value = overpaid / cleared
+  const displayOutstanding = Math.round(Math.abs(rawOutstandingNum));
+
+  // TEMPORARY DEBUG — remove once confirmed working.
+  console.log("DEBUG outstanding_balance:", {
+    raw: student?.outstanding_balance,
+    typeofRaw: typeof student?.outstanding_balance,
+    parsed: rawOutstandingNum,
+    isFullyPaid,
+    displayOutstanding,
+  });
+
   return (
     <AppShell
       title={`Welcome back, ${student?.full_name?.split(" ")[0] ?? "User"}`}
@@ -63,10 +80,14 @@ function DashboardPage() {
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Outstanding balance"
-          value={formatGHS(b.outstanding)}
-          sub={b.outstanding === 0 ? "All cleared" : "Across remaining levels"}
+          value={
+            <span className={isFullyPaid ? "text-success font-semibold" : "text-foreground"}>
+              {formatGHS(displayOutstanding)}
+            </span>
+          }
+          sub={isFullyPaid ? "All cleared" : "Across remaining levels"}
           icon={<Wallet className="h-5 w-5" />}
-          tone="primary"
+          tone={isFullyPaid ? "success" : "primary"}
         />
         <StatCard
           label="Total paid"
@@ -86,7 +107,7 @@ function DashboardPage() {
         <StatCard
           label="Current level"
           value={`Level ${student?.current_level ?? "N/A"}`}
-          sub={`Outstanding: ${formatGHS(student?.outstanding_balance ?? b.outstanding)}`}
+          sub={`Outstanding: ${formatGHS(displayOutstanding)}`}
           icon={<GraduationCap className="h-5 w-5" />}
           tone="warning"
         />
@@ -257,7 +278,7 @@ function StatCard({
   progress,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   sub: string;
   icon: ReactNode;
   tone: "primary" | "success" | "accent" | "warning";
@@ -268,7 +289,7 @@ function StatCard({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-[.18em] text-muted-foreground">{label}</p>
-          <p className="mt-3 text-2xl font-semibold text-foreground truncate">{value}</p>
+          <div className="mt-3 text-2xl font-semibold text-foreground truncate">{value}</div>
           <p className="mt-2 text-sm text-muted-foreground">{sub}</p>
         </div>
         <div

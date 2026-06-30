@@ -1,4 +1,4 @@
-import { ReactNode, CSSProperties } from "react";
+import { ReactNode } from "react";
 import { Logo } from "./Logo";
 
 export function AuthCard({ title, subtitle, children, className = "" }: { title: string; subtitle?: string; children: ReactNode; className?: string }) {
@@ -7,6 +7,10 @@ export function AuthCard({ title, subtitle, children, className = "" }: { title:
       <div className="flex flex-col p-6 md:p-10">
         <div className="flex flex-1 items-center justify-center py-10">
           <div className="w-full max-w-md">
+            {/* Logo */}
+            <div className="mb-6">
+              <Logo className="h-16 w-auto" />
+            </div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{title}</h1>
             {subtitle && <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>}
             <div className="mt-8 rounded-2xl border border-border bg-card p-6 md:p-8 shadow-card">

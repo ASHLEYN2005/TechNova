@@ -1,11 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
-import { LayoutDashboard, CreditCard, History, ReceiptText, Bell, User, LogOut, Menu, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, CreditCard, History, ReceiptText, Bell, User, LogOut, Menu, ShieldCheck,UserPlus } from "lucide-react";
 import { Logo } from "./Logo";
 import { useAppContext } from "@/lib/AppContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+
 
 const STUDENT_NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -18,11 +19,11 @@ const STUDENT_NAV = [
 
 const ADMIN_NAV = [
   { to: "/admin", label: "Admin", icon: ShieldCheck },
+  { to: "/import-students", label: "Import Students", icon: UserPlus }, // add this
   { to: "/history", label: "Payment History", icon: History },
   { to: "/receipts", label: "Receipts", icon: ReceiptText },
   { to: "/notifications", label: "Notifications", icon: Bell },
 ] as const;
-
 function NavItems({ onNavigate, role }: { onNavigate?: () => void; role?: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { notifications } = useAppContext();

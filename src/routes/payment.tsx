@@ -26,8 +26,7 @@ function PaymentPage() {
   const navigate = useNavigate();
   const { student, balances, fees } = useAppData();
   const { user: authUser, session } = useAuth();
-  
-  // DEBUGGING: These logs will reveal where the 100/500 value originates
+
   console.log("Raw Fees Array from AppContext:", fees);
   console.log("Current Student Dept ID:", student?.department_id);
 
@@ -36,24 +35,28 @@ function PaymentPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFeeId, setSelectedFeeId] = useState<string | null>(null);
 
-  // Pick the fee that matches the student's department, fall back to the first fee
   const departmentFee = useMemo(() => {
     if (!fees || fees.length === 0) return null;
-    
-    // Using Number() ensures type mismatch doesn't break the lookup
     const found = fees.find((f) => Number(f.department_id) === Number(student?.department_id));
-    
     console.log("Found Fee Object:", found);
     return found ?? fees[0];
   }, [fees, student?.department_id]);
 
-  const amount = Number(departmentFee?.target_amount ?? 0);
+  // Selected fee from dropdown, falls back to department fee
+  const selectedFee = useMemo(() => {
+    if (!fees || fees.length === 0) return departmentFee;
+    if (!selectedFeeId) return departmentFee;
+    return fees.find((f) => f.id === selectedFeeId) ?? departmentFee;
+  }, [selectedFeeId, fees, departmentFee]);
+
+  const amount = Number(selectedFee?.target_amount ?? 0);
   const fee = Math.round(amount * FEE_RATE * 100) / 100;
   const total = Math.round((amount + fee) * 100) / 100;
 
   const pay = async () => {
-    if (!departmentFee) {
+    if (!selectedFee) {
       setError("No dues amount found for your department. Please contact admin.");
       return;
     }
@@ -62,40 +65,37 @@ function PaymentPage() {
     setLoading(true);
 
     const handleSuccess = async (res: { reference: string }) => {
-    try {
-      const { data, error } = await supabase.functions.invoke("verify-paystack", {
-        body: {
-          reference: res.reference,
-          amount: total,
-          fee_id: departmentFee.id,
-          index_number: student?.index_number,
-          auth_user_id: authUserId,
-        },
-      });
+      try {
+        const { data, error } = await supabase.functions.invoke("verify-paystack", {
+          body: {
+            reference: res.reference,
+            amount: total,
+            fee_id: selectedFee.id,
+            index_number: student?.index_number,
+            auth_user_id: authUserId,
+          },
+        });
 
-      // supabase.functions.invoke puts HTTP error bodies in `error.context`
-      if (error) {
-        // Try to extract the actual message from the edge function response
-        let message = "Payment succeeded, but we couldn't save it.";
-        try {
-          const body = await error.context?.json?.();
-          if (body?.error) message = body.error;
-          if (body?.detail) message += `: ${body.detail}`;
-        } catch (_) {}
-        console.error("Edge function error:", error, message);
-        setError(message);
+        if (error) {
+          let message = "Payment succeeded, but we couldn't save it.";
+          try {
+            const body = await error.context?.json?.();
+            if (body?.error) message = body.error;
+            if (body?.detail) message += `: ${body.detail}`;
+          } catch (_) {}
+          console.error("Edge function error:", error, message);
+          setError(message);
+          setLoading(false);
+          return;
+        }
+
+        navigate({ to: "/payment-success", search: { ref: res.reference, amount: total } });
+      } catch (err: any) {
+        console.error("Database save failed:", err);
+        setError("Payment succeeded, but we couldn't save it. Please contact support with ref: " + res.reference);
         setLoading(false);
-        return; // don't navigate
       }
-
-    // Only navigate if truly successful
-    navigate({ to: "/payment-success", search: { ref: res.reference, amount: total } });
-  } catch (err: any) {
-    console.error("Database save failed:", err);
-    setError("Payment succeeded, but we couldn't save it. Please contact support with ref: " + res.reference);
-    setLoading(false);
-  }
-};
+    };
 
     try {
       if (!window.PaystackPop) {
@@ -146,12 +146,26 @@ function PaymentPage() {
 
           <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
             <h2 className="text-lg font-semibold">Payment details</h2>
+
+            {/* Fee type selector */}
             <div className="mt-4">
-              <div className="rounded-xl border-2 border-primary bg-primary/5 ring-2 ring-primary/20 p-5">
-                <div className="font-semibold text-foreground">
-                  {departmentFee?.fee_name ?? "Departmental Dues"}
-                </div>
-                <div className="mt-4 text-3xl font-bold text-foreground">{formatGHS(amount)}</div>
+              <label className="text-sm font-medium text-foreground mb-2 block">Fee type</label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {fees.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setSelectedFeeId(f.id)}
+                    className={`text-left rounded-xl border p-4 transition-all ${
+                      (selectedFeeId === f.id) || (!selectedFeeId && f.id === departmentFee?.id)
+                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                        : "border-border hover:border-primary/40"
+                    }`}
+                  >
+                    <div className="font-semibold text-sm">{f.fee_name}</div>
+                    <div className="mt-2 text-xl font-bold text-foreground">{formatGHS(Number(f.target_amount ?? 0))}</div>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -160,6 +174,10 @@ function PaymentPage() {
         <aside className="rounded-2xl border border-border bg-card p-6 shadow-soft h-fit">
           <h2 className="text-lg font-semibold">Payment summary</h2>
           <div className="mt-4 space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Fee type</span>
+              <span className="font-medium">{selectedFee?.fee_name ?? "—"}</span>
+            </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Dues amount</span>
               <span className="font-medium">{formatGHS(amount)}</span>
@@ -178,7 +196,7 @@ function PaymentPage() {
 
           <Button
             onClick={pay}
-            disabled={loading || !departmentFee}
+            disabled={loading || !selectedFee}
             className="mt-6 h-14 w-full gap-2 text-base font-semibold"
           >
             {loading ? (

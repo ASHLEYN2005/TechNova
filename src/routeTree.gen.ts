@@ -16,6 +16,7 @@ import { Route as PaymentSuccessRouteImport } from './routes/payment-success'
 import { Route as PaymentRouteImport } from './routes/payment'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ImportStudentsRouteImport } from './routes/import-students'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -58,6 +59,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ImportStudentsRoute = ImportStudentsRouteImport.update({
+  id: '/import-students',
+  path: '/import-students',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistoryRoute = HistoryRouteImport.update({
   id: '/history',
   path: '/history',
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/history': typeof HistoryRoute
+  '/import-students': typeof ImportStudentsRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/payment': typeof PaymentRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/history': typeof HistoryRoute
+  '/import-students': typeof ImportStudentsRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/payment': typeof PaymentRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/history': typeof HistoryRoute
+  '/import-students': typeof ImportStudentsRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/payment': typeof PaymentRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/forgot-password'
     | '/history'
+    | '/import-students'
     | '/login'
     | '/notifications'
     | '/payment'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/forgot-password'
     | '/history'
+    | '/import-students'
     | '/login'
     | '/notifications'
     | '/payment'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/forgot-password'
     | '/history'
+    | '/import-students'
     | '/login'
     | '/notifications'
     | '/payment'
@@ -190,6 +202,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HistoryRoute: typeof HistoryRoute
+  ImportStudentsRoute: typeof ImportStudentsRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   PaymentRoute: typeof PaymentRoute
@@ -250,6 +263,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/import-students': {
+      id: '/import-students'
+      path: '/import-students'
+      fullPath: '/import-students'
+      preLoaderRoute: typeof ImportStudentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/history': {
       id: '/history'
       path: '/history'
@@ -302,6 +322,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   HistoryRoute: HistoryRoute,
+  ImportStudentsRoute: ImportStudentsRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   PaymentRoute: PaymentRoute,

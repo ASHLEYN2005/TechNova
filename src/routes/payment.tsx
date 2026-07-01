@@ -7,6 +7,7 @@ import { CreditCard, Loader2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/useAuth";
 import { useAppData } from "@/lib/useAppData";
+import { notifyAppDataRefresh } from "@/lib/AppContext";
 
 const FEE_RATE = 0.015;
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
@@ -91,6 +92,7 @@ function PaymentPage() {
           return;
         }
 
+        notifyAppDataRefresh();
         navigate({ to: "/payment-success", search: { ref: res.reference, amount: total } });
       } catch (err: any) {
         console.error("Database save failed:", err);

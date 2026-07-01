@@ -26,6 +26,12 @@ type AppContextValue = {
 
 export const AppCtx = createContext<AppContextValue | undefined>(undefined);
 
+export function notifyAppDataRefresh() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("app:data-changed"));
+  }
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { session, user: authUser, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
@@ -138,6 +144,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // lastLoadedId guard.
     await load(identity, authId);
   }, [authId, authEmail, load]);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      void refreshData();
+    };
+
+    window.addEventListener("app:data-changed", handleRefresh as EventListener);
+    return () => {
+      window.removeEventListener("app:data-changed", handleRefresh as EventListener);
+    };
+  }, [refreshData]);
 
   const balances = useMemo(() => {
     const totalPaid = transactions.reduce((a, b) => a + Number(b.amount_paid ?? 0), 0);

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
+import { notifyAppDataRefresh, useAppContext } from "@/lib/AppContext";
 import { Upload, UserPlus, CheckCircle2, XCircle, Loader2, FileText, X, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/import-students")({
@@ -37,6 +38,7 @@ function isAllowedEmail(email: string) {
 }
 
 function ImportStudentsPage() {
+  const { refreshData } = useAppContext();
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [studentsLoading, setStudentsLoading] = useState(true);
 
@@ -143,7 +145,8 @@ function ImportStudentsPage() {
       setCsvResults(results);
 
       if (results.some((r) => r.status === "success")) {
-        await fetchStudents();
+        notifyAppDataRefresh();
+        await Promise.all([fetchStudents(), refreshData()]);
       }
     } catch {
       setCsvError("Failed to parse CSV. Please check the file format.");
@@ -184,7 +187,8 @@ function ImportStudentsPage() {
       setSingleSuccess(`Student "${form.full_name}" added successfully.`);
       setForm(EMPTY_FORM);
 
-      await fetchStudents();
+      notifyAppDataRefresh();
+      await Promise.all([fetchStudents(), refreshData()]);
     } catch (err: any) {
       setSingleError(err.message ?? "Failed to add student.");
     } finally {

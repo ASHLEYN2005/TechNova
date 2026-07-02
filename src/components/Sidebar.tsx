@@ -92,7 +92,7 @@ export function Sidebar({
 
         <Button
           variant="ghost"
-          className="w-full justify-start gap-3 rounded-xl text-white/80 hover:bg-white/10 hover:text-rose-400"
+          className="w-full justify-start gap-3 rounded-xl text-white hover:text-red-600"
           onClick={onLogout}
         >
           <LogOut className="h-4 w-4 shrink-0" /> Logout

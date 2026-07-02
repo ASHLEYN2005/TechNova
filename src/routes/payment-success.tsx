@@ -35,7 +35,6 @@ function SuccessPage() {
         .maybeSingle();
 
       if (error) {
-        console.error("Error fetching transaction:", error);
       } else {
         setTxn(data);
       }

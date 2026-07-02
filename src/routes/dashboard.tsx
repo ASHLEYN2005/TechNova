@@ -3,7 +3,6 @@ import { type ReactNode } from "react";
 import { AppShell } from "@/components/AppShell";
 import { formatGHS } from "@/lib/store";
 import { useAppData } from "@/lib/useAppData";
-import { useStudentFinance } from "@/lib/useStudentFinance";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Bell, CheckCircle2, CreditCard, GraduationCap, Wallet } from "lucide-react";
 import { useAppContext } from "@/lib/AppContext";
@@ -14,7 +13,7 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 function DashboardPage() {
-  const { student, transactions, balances, fees, loading, programmeName, programmeDurationYears } = useAppData();
+  const { student, transactions, balances, yearCards, loading } = useAppData();
   const { notifications } = useAppContext();
 
   if (loading) {
@@ -49,33 +48,9 @@ function DashboardPage() {
   const creditBalance = Math.max(0, Math.round(b.credit ?? 0));
   const isFullyPaid = displayOutstanding === 0;
 
-  const { financeRows, duration_years } = useStudentFinance();
-
-  const resolvedDurationYears = duration_years ?? (Number.isFinite(programmeDurationYears) && (programmeDurationYears ?? 0) > 0
-    ? Number(programmeDurationYears)
-    : Math.max(1, Math.ceil((student?.current_level ?? 0) / 100) || 4));
-
-  const dynamicYearCards = financeRows.length > 0
-    ? financeRows.map((row) => ({
-        id: `${row.Academic_level}`,
-        yearLabel: `Year ${row.Academic_level / 100}`,
-        academic_level: row.Academic_level,
-        target_amount: row.target_amount,
-        paid_amount: row.paid_amount,
-        status: row.status,
-      }))
-    : Array.from({ length: Math.max(1, resolvedDurationYears) }, (_, index) => ({
-        id: `year-${index + 1}`,
-        yearLabel: `Year ${index + 1}`,
-        academic_level: (index + 1) * 100,
-        target_amount: Number(fees[index]?.target_amount ?? 0),
-        paid_amount: 0,
-        status: "Pending" as const,
-      }));
-
-  const paidYears = dynamicYearCards.filter((year) => year.status === "Paid").length;
-  const totalYears = dynamicYearCards.length;
-  const completionPercent = Math.min(100, Math.round((paidYears / totalYears) * 100));
+  const paidYears = yearCards.filter((year) => year.status === "Paid").length;
+  const totalYears = yearCards.length;
+  const completionPercent = totalYears > 0 ? Math.min(100, Math.round((paidYears / totalYears) * 100)) : 0;
   const ringStyle = {
     background: `conic-gradient(#2563EB 0 ${completionPercent * 3.6}deg, #E5E7EB ${completionPercent * 3.6}deg 360deg)`,
   };
@@ -146,7 +121,7 @@ function DashboardPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-lg font-semibold text-slate-900">Yearly progress</h3>
-              <p className="text-sm text-slate-500">A clear summary of your years 1 through 4.</p>
+              <p className="text-sm text-slate-500">A clear summary of your programme's academic years.</p>
             </div>
             <div className="rounded-full bg-[#F3F4F6] px-3 py-1 text-sm font-medium text-slate-600">
               {completionPercent}% complete
@@ -165,11 +140,14 @@ function DashboardPage() {
             </div>
 
             <div className="flex-1 space-y-3">
-              {dynamicYearCards.map((year) => (
+              {yearCards.length === 0 && (
+                <p className="text-sm text-slate-500">No dues found for your programme yet.</p>
+              )}
+              {yearCards.map((year) => (
                 <div key={year.id} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-[#F9FAFB] px-4 py-3">
                   <div>
                     <p className="text-sm font-semibold text-slate-900">{year.yearLabel}</p>
-                    <p className="text-sm text-slate-500">{formatGHS(year.paid_amount)} / {formatGHS(year.target_amount)}</p>
+                    <p className="text-sm text-slate-500">{formatGHS(year.paidAmount)} / {formatGHS(year.targetAmount)}</p>
                   </div>
                   <div className={`rounded-full px-2.5 py-1 text-xs font-semibold ${year.status === "Paid" ? "bg-emerald-50 text-emerald-600" : "bg-[#EEF2FF] text-[#2563EB]"}`}>
                     {year.status}

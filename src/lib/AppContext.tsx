@@ -5,7 +5,7 @@ import type { StudentRow, TransactionRow, ReceiptRow, FeeRow, ProgrammeRow } fro
 import { useQueryClient } from "@tanstack/react-query";
 
 type Notification = { id: string; type: "payment" | "reminder" | "announcement"; title: string; body: string; date: string; read: boolean };
-type FeeBalanceRow = {
+export type FeeBalanceRow = {
   index_number: string;
   fee_id: string;
   paid_amount: number;
@@ -23,6 +23,7 @@ export type AppContextValue = {
   transactions: TransactionRow[];
   receipts: ReceiptRow[];
   fees: FeeRow[];
+  feeBalances: FeeBalanceRow[];
   programme: ProgrammeRow | null;
   balances: { totalPaid: number; totalTarget: number; outstanding: number; credit: number; completion: number };
   loading: boolean;
@@ -190,32 +191,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [refreshData]);
 
   const balances = useMemo(() => {
-    const relevantFees = fees.filter((f) => f.department_id === student?.department_id);
+    const relevantFees = fees.filter((f) => f.department_id === student?.department_id && f.prog_id === student?.prog_id);
     const totalTarget = relevantFees.reduce((a, b) => a + Number(b.target_amount ?? 0), 0);
 
-    const feeBalanceTotalPaid = feeBalances.reduce((a, b) => a + Number(b.paid_amount ?? 0), 0);
-    const feeBalanceOutstanding = feeBalances.reduce((a, b) => a + Number(b.outstanding ?? 0), 0);
-    const feeBalanceCredit = feeBalances.reduce((a, b) => a + Number(b.credit ?? 0), 0);
+    const balanceByFeeId = feeBalances.reduce<Record<string, FeeBalanceRow>>((acc, row) => {
+      acc[row.fee_id] = row;
+      return acc;
+    }, {});
 
-    const hasFeeBalanceRows = feeBalances.length > 0;
-    const totalPaid = hasFeeBalanceRows ? feeBalanceTotalPaid : transactions.reduce((a, b) => a + Number(b.amount_paid ?? 0), 0);
-    const outstanding = hasFeeBalanceRows ? Math.max(0, feeBalanceOutstanding) : Math.max(0, totalTarget - totalPaid);
-    const credit = hasFeeBalanceRows ? Math.max(0, feeBalanceCredit) : Math.max(0, totalPaid - outstanding);
+    // Walk every fee that applies to this student — not just the ones that
+    // already have a fee_balances row. A year with no row yet simply means
+    // "no payment has happened for it", which should count as fully
+    // outstanding (paid = 0, outstanding = target), not as zero everything.
+    let totalPaid = 0;
+    let outstanding = 0;
+    let credit = 0;
+
+    relevantFees.forEach((f) => {
+      const target = Number(f.target_amount ?? 0);
+      const bal = balanceByFeeId[f.id];
+
+      if (bal) {
+        totalPaid += Number(bal.paid_amount ?? 0);
+        outstanding += Number(bal.outstanding ?? 0);
+        credit += Number(bal.credit ?? 0);
+      } else {
+        // No fee_balances row yet for this year — nothing paid, full amount owed.
+        outstanding += target;
+      }
+    });
+
     const completion = totalTarget > 0 ? Math.min(100, Math.round((totalPaid / totalTarget) * 100)) : 0;
 
     return {
       totalPaid,
       totalTarget,
-      outstanding,
-      credit,
+      outstanding: Math.max(0, outstanding),
+      credit: Math.max(0, credit),
       completion,
     };
-  }, [transactions, fees, feeBalances, student?.department_id]);
+  }, [fees, feeBalances, student?.department_id, student?.prog_id]);
 
   const value = useMemo(() => ({
-    session, authUser, student, students, transactions, receipts, fees, programme, balances, loading, notifications, isLoggingOut,
+    session, authUser, student, students, transactions, receipts, fees, feeBalances, programme, balances, loading, notifications, isLoggingOut,
     signInWithGoogle: async () => {}, signOut, markNotificationsRead: async () => {}, refreshData,
-  }), [session, authUser, student, students, transactions, receipts, fees, programme, balances, loading, notifications, isLoggingOut, refreshData]);
+  }), [session, authUser, student, students, transactions, receipts, fees, feeBalances, programme, balances, loading, notifications, isLoggingOut, refreshData]);
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }

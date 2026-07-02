@@ -89,7 +89,6 @@ export async function fetchStudentFinanceData(authUserId: string): Promise<Stude
 
     return { financeRows, duration_years, loading: false, error: null };
   } catch (error: any) {
-    console.error("fetchStudentFinanceData error", error);
     return { financeRows: [], duration_years: null, loading: false, error: error?.message ?? "Unable to load student finance data." };
   }
 }

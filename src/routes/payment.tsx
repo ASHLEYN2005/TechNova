@@ -7,7 +7,6 @@ import { CheckCircle2, CreditCard, Loader2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/useAuth";
 import { useAppData } from "@/lib/useAppData";
-import { useStudentFinance } from "@/lib/useStudentFinance";
 import { notifyAppDataRefresh } from "@/lib/AppContext";
 
 const FEE_RATE = 0.015;
@@ -26,67 +25,17 @@ export const Route = createFileRoute("/payment")({
 
 function PaymentPage() {
   const navigate = useNavigate();
-  const { student, fees, transactions, balances, programmeName, programmeDurationYears } = useAppData();
+  const { student, balances, yearCards, programmeName, programmeDurationYears } = useAppData();
   const { user: authUser, session } = useAuth();
-
   const authUserId = authUser?.auth_user_id ?? session?.user?.id ?? null;
   const displayOutstanding = Math.max(0, Math.round(balances.outstanding ?? 0));
-  const isFullyPaid = displayOutstanding === 0;
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedFeeId, setSelectedFeeId] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<"momo" | "card">("momo");
 
-  const { financeRows, duration_years } = useStudentFinance();
-
-  const resolvedDurationYears = duration_years ?? (Number.isFinite(programmeDurationYears) && (programmeDurationYears ?? 0) > 0
-    ? Number(programmeDurationYears)
-    : Math.max(1, Math.ceil((student?.current_level ?? 0) / 100) || 4));
-
-  type YearCard = {
-    id: string;
-    fee_name: string;
-    yearLabel: string;
-    academic_level: number;
-    isPaid: boolean;
-    targetAmount: number;
-    paidAmount: number;
-    status: "Paid" | "Pending";
-  };
-
- const yearCards = useMemo<YearCard[]>(() => {
-  if (financeRows.length > 0) {
-    return financeRows.map((row) => {
-      return {
-        id: row.fee_id, 
-        fee_name: row.fee_name ?? `Annual dues ${row.Academic_level / 100}`,
-        yearLabel: `Year ${row.Academic_level / 100}`,
-        academic_level: Number(row.Academic_level),
-        isPaid: row.status === "Paid",
-        targetAmount: Number(row.target_amount ?? 0),
-        paidAmount: Number(row.paid_amount ?? 0),
-        status: row.status,
-      };
-    });
-  }
-
-    return Array.from({ length: Math.max(1, resolvedDurationYears) }, (_, index) => {
-      const fee = fees[index] ?? null;
-      return {
-        id: fee?.id ?? `year-${index + 1}`,
-        fee_name: fee?.fee_name ?? `Annual dues ${index + 1}`,
-        yearLabel: `Year ${index + 1}`,
-        academic_level: (index + 1) * 100,
-        isPaid: Boolean(fee && transactions.some((t) => t.fee_id === fee.id && t.status?.toLowerCase() === "success")),
-        targetAmount: Number(fee?.target_amount ?? 0),
-        paidAmount: 0,
-        status: "Pending",
-      };
-    });
-  }, [fees, financeRows, resolvedDurationYears, transactions]);
-
-  const selectedFee = useMemo<YearCard | null>(() => {
+  const selectedFee = useMemo(() => {
     if (!yearCards.length) return null;
     return yearCards.find((fee) => fee.id === selectedFeeId) ?? yearCards[0];
   }, [yearCards, selectedFeeId]);
@@ -94,7 +43,12 @@ function PaymentPage() {
   const amount = selectedFee ? selectedFee.targetAmount : 0;
   const fee = Math.round(amount * FEE_RATE * 100) / 100;
   const total = Math.round((amount + fee) * 100) / 100;
-  const programmeYears = Math.max(1, (programmeDurationYears ?? yearCards.length) || 4);
+
+  // Programme duration should always reflect the actual number of fee/year
+  // cards resolved for this student's (department, programme) pair — not a
+  // hardcoded fallback — so HND (e.g. 3 years) and BTech (e.g. 4 years)
+  // naturally show the right count without guessing.
+  const programmeYears = programmeDurationYears ?? yearCards.length;
 
   const pay = async (feeToPay?: typeof selectedFee | null) => {
     const feeSelection = feeToPay ?? selectedFee;
@@ -196,6 +150,12 @@ function PaymentPage() {
               </div>
             </div>
 
+            {yearCards.length === 0 && (
+              <p className="mt-5 text-sm text-slate-500">
+                No dues found for your programme yet. Please contact admin if this looks wrong.
+              </p>
+            )}
+
             <div className="mt-5 grid gap-4 lg:grid-cols-2">
               {yearCards.map((fee) => (
                 <div key={fee.id} className={`rounded-2xl border p-4 transition-all ${selectedFee?.id === fee.id ? "border-[#2563EB] bg-[#F8FAFF] shadow-sm" : "border-slate-200 bg-[#F9FAFB]"}`}>
@@ -239,7 +199,7 @@ function PaymentPage() {
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex items-center justify-between rounded-2xl bg-[#F9FAFB] px-3 py-2">
                 <span className="text-slate-500">Programme Type</span>
-                <span className="font-semibold text-slate-900">{programmeName ?? student?.department?.name ?? "Not assigned"}</span>
+                <span className="font-semibold text-slate-900">{programmeName}</span>
               </div>
               <div className="flex items-center justify-between rounded-2xl bg-[#F9FAFB] px-3 py-2">
                 <span className="text-slate-500">Duration</span>
@@ -300,4 +260,5 @@ function PaymentPage() {
       </div>
     </AppShell>
   );
+
 }

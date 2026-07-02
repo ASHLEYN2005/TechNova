@@ -63,9 +63,9 @@ export function Sidebar({
 }) {
   return (
     <div className="flex h-full flex-col bg-primary text-primary-foreground">
-      <div className="border-b border-slate-200 px-3 py-5">
-        <div className="rounded-2xl bg-white p-3 shadow-sm">
-          <Logo className="h-10 w-auto" />
+      <div className="border-b border-slate-200 px-3 py-8">
+        <div className="rounded-2xl bg-white p-0.5 shadow-sm flex items-center justify-center">
+          <Logo className="h-16 w-35" />
         </div>
       </div>
 
@@ -92,7 +92,7 @@ export function Sidebar({
 
         <Button
           variant="ghost"
-          className="w-full justify-start gap-3 rounded-xl text-slate-600 hover:bg-white hover:text-rose-600"
+          className="w-full justify-start gap-3 rounded-xl text-white/80 hover:bg-white/10 hover:text-rose-400"
           onClick={onLogout}
         >
           <LogOut className="h-4 w-4 shrink-0" /> Logout

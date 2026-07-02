@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UpdatePasswordRouteImport } from './routes/update-password'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReceiptsRouteImport } from './routes/receipts'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PaymentSuccessRouteImport } from './routes/payment-success'
@@ -27,6 +28,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const UpdatePasswordRoute = UpdatePasswordRouteImport.update({
   id: '/update-password',
   path: '/update-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReceiptsRoute = ReceiptsRouteImport.update({
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/payment-success': typeof PaymentSuccessRoute
   '/profile': typeof ProfileRoute
   '/receipts': typeof ReceiptsRoute
+  '/settings': typeof SettingsRoute
   '/update-password': typeof UpdatePasswordRoute
 }
 export interface FileRoutesByTo {
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/payment-success': typeof PaymentSuccessRoute
   '/profile': typeof ProfileRoute
   '/receipts': typeof ReceiptsRoute
+  '/settings': typeof SettingsRoute
   '/update-password': typeof UpdatePasswordRoute
 }
 export interface FileRoutesById {
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/payment-success': typeof PaymentSuccessRoute
   '/profile': typeof ProfileRoute
   '/receipts': typeof ReceiptsRoute
+  '/settings': typeof SettingsRoute
   '/update-password': typeof UpdatePasswordRoute
 }
 export interface FileRouteTypes {
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/payment-success'
     | '/profile'
     | '/receipts'
+    | '/settings'
     | '/update-password'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/payment-success'
     | '/profile'
     | '/receipts'
+    | '/settings'
     | '/update-password'
   id:
     | '__root__'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/payment-success'
     | '/profile'
     | '/receipts'
+    | '/settings'
     | '/update-password'
   fileRoutesById: FileRoutesById
 }
@@ -209,6 +221,7 @@ export interface RootRouteChildren {
   PaymentSuccessRoute: typeof PaymentSuccessRoute
   ProfileRoute: typeof ProfileRoute
   ReceiptsRoute: typeof ReceiptsRoute
+  SettingsRoute: typeof SettingsRoute
   UpdatePasswordRoute: typeof UpdatePasswordRoute
 }
 
@@ -219,6 +232,13 @@ declare module '@tanstack/react-router' {
       path: '/update-password'
       fullPath: '/update-password'
       preLoaderRoute: typeof UpdatePasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/receipts': {
@@ -329,6 +349,7 @@ const rootRouteChildren: RootRouteChildren = {
   PaymentSuccessRoute: PaymentSuccessRoute,
   ProfileRoute: ProfileRoute,
   ReceiptsRoute: ReceiptsRoute,
+  SettingsRoute: SettingsRoute,
   UpdatePasswordRoute: UpdatePasswordRoute,
 }
 export const routeTree = rootRouteImport

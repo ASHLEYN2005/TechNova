@@ -158,15 +158,15 @@ function DashboardPage() {
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="space-y-6 h-full">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm h-full flex flex-col">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Quick actions</h3>
                 <p className="text-sm text-slate-500">Jump straight into the next payment task.</p>
               </div>
             </div>
-            <div className="mt-5 space-y-3">
+            <div className="mt-5 flex flex-col gap-8 flex-1">
               <Link to="/payment">
                 <Button className="h-11 w-full justify-between rounded-2xl bg-[#2563EB] text-sm font-semibold">
                   Make a payment <ArrowUpRight className="h-4 w-4" />
@@ -183,23 +183,10 @@ function DashboardPage() {
                 </Button>
               </Link>
             </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-2">
-              <Bell className="h-4 w-4 text-[#2563EB]" />
-              <h3 className="text-lg font-semibold text-slate-900">Recent notifications</h3>
-            </div>
-            <div className="mt-4 space-y-3">
-              {notifications.slice(0, 3).length === 0 && (
-                <p className="text-sm text-slate-500">No new updates right now.</p>
-              )}
-              {notifications.slice(0, 3).map((item) => (
-                <div key={item.id} className="rounded-2xl border border-slate-200 bg-[#F9FAFB] p-3">
-                  <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                  <p className="mt-1 text-sm text-slate-500">{item.body}</p>
-                </div>
-              ))}
+            <div className="mt-6 pt-6 border-t border-slate-200">
+              <p className="text-xs text-slate-500 leading-relaxed">
+                <span className="font-semibold text-slate-600">NOTE:</span> All transactions are secured through Paystack. Your payments are processed instantly and receipts are generated automatically for your records.
+              </p>
             </div>
           </div>
         </div>

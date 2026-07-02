@@ -1,109 +1,9 @@
-import { Link, useRouterState } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
-import { LayoutDashboard, CreditCard, History, ReceiptText, Bell, User, LogOut, Menu, ShieldCheck,UserPlus } from "lucide-react";
-import { Logo } from "./Logo";
+import { Menu } from "lucide-react";
 import { useAppContext } from "@/lib/AppContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
-
-
-const STUDENT_NAV = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/payment", label: "Make Payment", icon: CreditCard },
-  { to: "/history", label: "Payment History", icon: History },
-  { to: "/receipts", label: "Receipts", icon: ReceiptText },
-  { to: "/notifications", label: "Notifications", icon: Bell },
-  { to: "/profile", label: "Profile", icon: User },
-] as const;
-
-const ADMIN_NAV = [
-  { to: "/admin", label: "Admin", icon: ShieldCheck },
-  { to: "/import-students", label: "Import Students", icon: UserPlus }, // add this
-  { to: "/history", label: "Payment History", icon: History },
-  { to: "/receipts", label: "Receipts", icon: ReceiptText },
-  { to: "/notifications", label: "Notifications", icon: Bell },
-] as const;
-function NavItems({ onNavigate, role }: { onNavigate?: () => void; role?: string }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { notifications } = useAppContext();
-  const unread = notifications.filter((n) => !n.read).length;
-
-  const isAdmin = role?.toLowerCase() === "admin";
-  const navItems = isAdmin ? ADMIN_NAV : STUDENT_NAV;
-
-  return (
-    <nav className="flex flex-col gap-1 p-3">
-      {navItems.map(({ to, label, icon: Icon }) => {
-        const active = pathname === to || (to !== "/dashboard" && to !== "/admin" && pathname.startsWith(to));
-        return (
-          <Link
-            key={to}
-            to={to}
-            onClick={onNavigate}
-            className={cn(
-              "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
-              active
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-            )}
-          >
-            <Icon className="h-4 w-4 shrink-0" />
-            <span className="flex-1">{label}</span>
-            {to === "/notifications" && unread > 0 && (
-              <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                {unread}
-              </span>
-            )}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
-
-function SidebarInner({
-  onNavigate,
-  student,
-  onLogout,
-}: {
-  onNavigate?: () => void;
-  student?: any;
-  onLogout: () => void;
-}) {
-  return (
-    <div className="flex h-full flex-col bg-sidebar border-r border-sidebar-border">
-      <div className="p-5 border-b border-sidebar-border">
-        <Logo />
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        <NavItems onNavigate={onNavigate} role={student?.role} />
-      </div>
-      <div className="p-3 border-t border-sidebar-border space-y-2">
-        <div className="flex items-center gap-3 rounded-lg bg-secondary/60 px-3 py-2">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold">
-            {(student?.full_name ?? "U")
-              .split(" ")
-              .map((s: string) => s[0])
-              .join("")
-              .slice(0, 2)}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium">{student?.full_name ?? "User"}</div>
-            <div className="truncate text-xs text-muted-foreground">{student?.index_number ?? ""}</div>
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-          onClick={onLogout}
-        >
-          <LogOut className="h-4 w-4 shrink-0" /> Logout
-        </Button>
-      </div>
-    </div>
-  );
-}
+import { Sidebar } from "@/components/Sidebar";
 
 export function AppShell({
   children,
@@ -125,17 +25,17 @@ export function AppShell({
     await signOut();
   };
 
-  if (isLoggingOut) return <div className="min-h-screen bg-background" />;
-  if (loading) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  if (isLoggingOut) return <div className="min-h-screen bg-[#F9FAFB]" />;
+  if (loading) return <div className="flex min-h-screen items-center justify-center bg-[#F9FAFB]">Loading...</div>;
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-40">
-        <SidebarInner student={student} onLogout={handleLogout} />
+    <div className="flex min-h-screen bg-[#F9FAFB]">
+      <aside className="hidden md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-40">
+        <Sidebar student={student} onLogout={handleLogout} />
       </aside>
 
-      <div className="flex-1 flex flex-col md:pl-64 min-w-0">
-        <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-md">
+      <div className="flex-1 flex flex-col md:pl-72 min-w-0">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur-md">
           <div className="flex items-center gap-3 px-4 py-3 md:px-8 md:py-4">
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
@@ -144,25 +44,19 @@ export function AppShell({
                   <span className="sr-only">Open menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-72">
-                <SidebarInner
-                  student={student}
-                  onNavigate={() => setOpen(false)}
-                  onLogout={handleLogout}
-                />
+              <SheetContent side="left" className="w-72 p-0">
+                <Sidebar student={student} onNavigate={() => setOpen(false)} onLogout={handleLogout} />
               </SheetContent>
             </Sheet>
 
             <div className="flex-1 min-w-0">
               {title && (
-                <h1 className="text-lg md:text-2xl font-semibold tracking-tight truncate leading-tight">
+                <h1 className="truncate text-lg font-semibold tracking-tight text-slate-900 md:text-2xl">
                   {title}
                 </h1>
               )}
               {subtitle && (
-                <p className="text-xs md:text-sm text-muted-foreground truncate mt-0.5">
-                  {subtitle}
-                </p>
+                <p className="mt-0.5 truncate text-xs text-slate-500 md:text-sm">{subtitle}</p>
               )}
             </div>
 
@@ -170,7 +64,7 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-8 w-full max-w-7xl mx-auto">
+        <main className="mx-auto flex-1 w-full max-w-7xl p-4 md:p-8">
           {children}
         </main>
       </div>

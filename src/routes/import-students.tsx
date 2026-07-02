@@ -21,6 +21,7 @@ type StudentRow = {
   email: string;
   current_level: number;
   department_id: number | null;
+  prog_id: number | null;
 };
 
 const EMPTY_FORM = {
@@ -29,6 +30,7 @@ const EMPTY_FORM = {
   email: "",
   current_level: "",
   department_id: "",
+  prog_id: "",
 };
 
 const ALLOWED_EMAIL_DOMAIN = "@htu.edu.gh";
@@ -46,7 +48,7 @@ function ImportStudentsPage() {
     setStudentsLoading(true);
     const { data, error } = await supabase
       .from("studenttable")
-      .select("id, full_name, index_number, email, current_level, department_id")
+      .select("id, full_name, index_number, email, current_level, department_id, prog_id")
       .order("full_name", { ascending: true });
 
     if (!error && data) {
@@ -119,6 +121,7 @@ function ImportStudentsPage() {
 
         const rawDept = record["department_id"] ?? record["department"] ?? "";
         const rawLevel = record["current_level"] ?? record["level"] ?? "";
+        const rawProg = record["prog_id"] ?? record["programme_id"] ?? record["programme"] ?? "";
 
         try {
           const { error } = await supabase.from("studenttable").upsert(
@@ -127,6 +130,7 @@ function ImportStudentsPage() {
               full_name: record["full_name"] ?? record["full name"] ?? "",
               current_level: rawLevel ? Number(rawLevel) : 100,
               department_id: rawDept ? Number(rawDept) : null,
+              prog_id: rawProg ? Number(rawProg) : null,
               index_number,
             },
             { onConflict: "index_number" }
@@ -178,6 +182,7 @@ function ImportStudentsPage() {
           email: form.email.trim(),
           current_level: Number(form.current_level) || 100,
           department_id: form.department_id ? Number(form.department_id) : null,
+          prog_id: form.prog_id ? Number(form.prog_id) : null,
         },
         { onConflict: "index_number" }
       );
@@ -247,12 +252,13 @@ function ImportStudentsPage() {
                 <th className="px-6 py-3 text-left font-medium">Email</th>
                 <th className="px-6 py-3 text-left font-medium">Level</th>
                 <th className="px-6 py-3 text-left font-medium">Department ID</th>
+                <th className="px-6 py-3 text-left font-medium">Programme ID</th>
               </tr>
             </thead>
             <tbody>
               {!studentsLoading && students.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-6 py-10 text-center text-muted-foreground">
                     No students yet. Import a CSV or add one manually.
                   </td>
                 </tr>
@@ -264,6 +270,7 @@ function ImportStudentsPage() {
                   <td className="px-6 py-4 text-muted-foreground">{s.email}</td>
                   <td className="px-6 py-4">Level {s.current_level}</td>
                   <td className="px-6 py-4 text-muted-foreground">{s.department_id ?? "—"}</td>
+                  <td className="px-6 py-4 text-muted-foreground">{s.prog_id ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -342,6 +349,17 @@ function ImportStudentsPage() {
                 </div>
               </div>
 
+              <div className="space-y-1.5">
+                <Label htmlFor="prog_id">Programme ID</Label>
+                <Input
+                  id="prog_id"
+                  placeholder="e.g. 1"
+                  inputMode="numeric"
+                  value={form.prog_id}
+                  onChange={(e) => setForm((p) => ({ ...p, prog_id: e.target.value.replace(/\D/g, "") }))}
+                />
+              </div>
+
               {singleError && <p className="text-sm text-rose-600">{singleError}</p>}
               {singleSuccess && (
                 <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
@@ -382,7 +400,7 @@ function ImportStudentsPage() {
                   CSV must include:
                 </p>
                 <p className="font-mono text-xs text-muted-foreground mb-1">
-                  email,full_name, current_level, department_id,index_number
+                  email,full_name,current_level,department_id,prog_id,index_number
                 </p>
                 <p className="text-xs text-muted-foreground mb-4">
                   Only {ALLOWED_EMAIL_DOMAIN} emails will be imported.

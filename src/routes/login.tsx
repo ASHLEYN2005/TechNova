@@ -8,6 +8,7 @@ import { Eye, EyeOff, Loader2, Mail, Globe } from "lucide-react";
 import { AuthCard } from "@/components/AuthCard";
 import { supabase } from "@/lib/supabase";
 import { useAppContext } from "@/lib/AppContext";
+import { getDemoAccount, isDemoEmail, isDemoPassword, setDemoSession } from "@/lib/demo-auth";
 import { toast, Toaster } from "sonner";
 
 export const Route = createFileRoute("/login")({
@@ -109,6 +110,18 @@ function LoginPage() {
       return;
     }
     setLoading(true);
+
+    const demoAccount = getDemoAccount(email);
+    if (demoAccount && isDemoPassword(email, pw)) {
+      setDemoSession(email);
+      if (demoAccount.role === "admin") {
+        navigate({ to: "/admin", replace: true });
+      } else {
+        navigate({ to: "/dashboard", replace: true });
+      }
+      setLoading(false);
+      return;
+    }
 
     const { data, error: authError } = await supabase.auth.signInWithPassword({
       email,

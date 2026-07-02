@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
+import { getStoredDemoSession, isDemoEmail } from "./demo-auth";
 
 export type AppUser = {
   fullName: string;
@@ -21,6 +22,19 @@ export function useAuth() {
 
     const load = async () => {
       setLoading(true);
+      const demoSession = getStoredDemoSession();
+      if (demoSession?.user?.email && isDemoEmail(demoSession.user.email)) {
+        if (!mounted) return;
+        setSession(demoSession as any);
+        setUser({
+          fullName: demoSession.user.user_metadata?.full_name ?? demoSession.user.user_metadata?.name ?? demoSession.user.email?.split("@")[0] ?? "Demo User",
+          email: demoSession.user.email,
+          auth_user_id: demoSession.user.id,
+        });
+        setLoading(false);
+        return;
+      }
+
       const { data } = await supabase.auth.getSession();
       const s = data.session ?? null;
       if (!mounted) return;

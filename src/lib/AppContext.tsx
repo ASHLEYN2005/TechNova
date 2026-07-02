@@ -1,12 +1,21 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { supabase } from "./supabase";
 import { useAuth } from "./useAuth";
-import type { StudentRow, TransactionRow, ReceiptRow, FeeRow } from "./useAppData";
+import type { StudentRow, TransactionRow, ReceiptRow, FeeRow, ProgrammeRow } from "./useAppData";
 import { useQueryClient } from "@tanstack/react-query";
 
 type Notification = { id: string; type: "payment" | "reminder" | "announcement"; title: string; body: string; date: string; read: boolean };
+type FeeBalanceRow = {
+  index_number: string;
+  fee_id: string;
+  paid_amount: number;
+  outstanding: number;
+  credit: number;
+  status: string;
+  updated_at?: string | null;
+};
 
-type AppContextValue = {
+export type AppContextValue = {
   session: any | null;
   authUser: any | null;
   student: StudentRow | null;
@@ -14,7 +23,8 @@ type AppContextValue = {
   transactions: TransactionRow[];
   receipts: ReceiptRow[];
   fees: FeeRow[];
-  balances: { totalPaid: number; totalTarget: number; outstanding: number; completion: number };
+  programme: ProgrammeRow | null;
+  balances: { totalPaid: number; totalTarget: number; outstanding: number; credit: number; completion: number };
   loading: boolean;
   notifications: Notification[];
   isLoggingOut: boolean;
@@ -41,6 +51,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
   const [fees, setFees] = useState<FeeRow[]>([]);
+  const [feeBalances, setFeeBalances] = useState<FeeBalanceRow[]>([]);
+  const [programme, setProgramme] = useState<ProgrammeRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -65,33 +77,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const load = useCallback(async (identity: string, currentAuthId: string | null) => {
     setLoading(true);
     try {
-      const { data: s } = await supabase
+      const { data: s, error: studentError } = await supabase
         .from("studenttable")
         .select(`*, department!department_id(name)`)
         .eq(currentAuthId ? "auth_user_id::uuid" : "email", identity)
         .maybeSingle();
 
+      if (studentError) {
+        console.error("Student lookup error", studentError);
+      }
+
       if (!s) {
-        if (mountedRef.current) setStudent(null);
+        if (mountedRef.current) {
+          setStudent(null);
+          setProgramme(null);
+        }
         return;
       }
 
       const studentRow = {
         ...s,
-        full_name: session?.user?.user_metadata?.full_name ?? authUser?.full_name ?? s.full_name
+        full_name: session?.user?.user_metadata?.full_name ?? authUser?.fullName ?? s.full_name
       } as StudentRow;
+
+      let programmeRow: ProgrammeRow | null = null;
+      if (studentRow.prog_id != null) {
+        const { data: programmeData } = await supabase
+          .from("programme_table")
+          .select("prog_id, prog_name, duration_years")
+          .eq("prog_id", studentRow.prog_id)
+          .maybeSingle();
+
+        programmeRow = (programmeData as ProgrammeRow | null) ?? null;
+      }
 
       const isAdmin = studentRow.role === 'admin';
 
-      const [txRes, rcRes, fRes, stRes] = await Promise.all([
+      const [txRes, rcRes, fRes, stRes, fbRes] = await Promise.all([
         isAdmin ? supabase.from("transactions_table").select("*") : supabase.from("transactions_table").select("*").eq("index_number", s.index_number),
         isAdmin ? supabase.from("receipts").select("*") : supabase.from("receipts").select("*").eq("index_number", s.index_number),
         supabase.from("fees").select("*"),
-        isAdmin ? supabase.from("studenttable").select("*, department!department_id(name)") : Promise.resolve({ data: [] })
+        isAdmin ? supabase.from("studenttable").select("*, department!department_id(name)") : Promise.resolve({ data: [] }),
+        isAdmin ? supabase.from("fee_balances").select("*") : supabase.from("fee_balances").select("*").eq("index_number", s.index_number)
       ]);
 
       if (mountedRef.current) {
         setStudent(studentRow);
+        setProgramme(programmeRow);
         const txs = (txRes.data ?? []) as TransactionRow[];
         setTransactions(txs);
 
@@ -105,6 +137,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         setReceipts(receiptsWithAmount as ReceiptRow[]);
         setFees((fRes.data ?? []) as FeeRow[]);
+        setFeeBalances((fbRes.data ?? []) as FeeBalanceRow[]);
         setStudents((stRes.data ?? []) as StudentRow[]);
         lastLoadedId.current = identity;
       }
@@ -157,22 +190,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [refreshData]);
 
   const balances = useMemo(() => {
-    const totalPaid = transactions.reduce((a, b) => a + Number(b.amount_paid ?? 0), 0);
-    const relevantFees = fees.filter(f => f.department_id === student?.department_id);
+    const relevantFees = fees.filter((f) => f.department_id === student?.department_id);
     const totalTarget = relevantFees.reduce((a, b) => a + Number(b.target_amount ?? 0), 0);
+
+    const feeBalanceTotalPaid = feeBalances.reduce((a, b) => a + Number(b.paid_amount ?? 0), 0);
+    const feeBalanceOutstanding = feeBalances.reduce((a, b) => a + Number(b.outstanding ?? 0), 0);
+    const feeBalanceCredit = feeBalances.reduce((a, b) => a + Number(b.credit ?? 0), 0);
+
+    const hasFeeBalanceRows = feeBalances.length > 0;
+    const totalPaid = hasFeeBalanceRows ? feeBalanceTotalPaid : transactions.reduce((a, b) => a + Number(b.amount_paid ?? 0), 0);
+    const outstanding = hasFeeBalanceRows ? Math.max(0, feeBalanceOutstanding) : Math.max(0, totalTarget - totalPaid);
+    const credit = hasFeeBalanceRows ? Math.max(0, feeBalanceCredit) : Math.max(0, totalPaid - outstanding);
+    const completion = totalTarget > 0 ? Math.min(100, Math.round((totalPaid / totalTarget) * 100)) : 0;
 
     return {
       totalPaid,
       totalTarget,
-      outstanding: Math.max(0, totalTarget - totalPaid),
-      completion: totalTarget > 0 ? Math.min(100, Math.round((totalPaid / totalTarget) * 100)) : 0
+      outstanding,
+      credit,
+      completion,
     };
-  }, [transactions, fees, student?.department_id]);
+  }, [transactions, fees, feeBalances, student?.department_id]);
 
   const value = useMemo(() => ({
-    session, authUser, student, students, transactions, receipts, fees, balances, loading, notifications, isLoggingOut,
+    session, authUser, student, students, transactions, receipts, fees, programme, balances, loading, notifications, isLoggingOut,
     signInWithGoogle: async () => {}, signOut, markNotificationsRead: async () => {}, refreshData,
-  }), [session, authUser, student, students, transactions, receipts, fees, balances, loading, notifications, isLoggingOut, refreshData]);
+  }), [session, authUser, student, students, transactions, receipts, fees, programme, balances, loading, notifications, isLoggingOut, refreshData]);
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }

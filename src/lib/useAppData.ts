@@ -12,6 +12,7 @@ export type StudentRow = {
   is_activated: boolean;
   role: string;
   index_number?: string;
+    prog_id?: number | null;
   auth_user_id: string;
   created_at: string;
 };
@@ -48,15 +49,19 @@ export type FeeRow = {
   department_id: number;
 };
 
+export type ProgrammeRow = {
+  prog_id: number;
+  prog_name: string;
+  duration_years: number;
+};
+
 // --- Hook ---
 export function useAppData() {
   const ctx = useAppContext();
   
-  const totalPaid = ctx.transactions
-    .filter((t) => t.status?.toLowerCase() === "success")
-    .reduce((sum, t) => sum + Number(t.amount_paid || 0), 0);
-
-  const outstanding = ctx.student ? Number(ctx.student.outstanding_balance || 0) : 0;
+  const totalPaid = ctx.balances?.totalPaid ?? 0;
+  const outstanding = ctx.balances?.outstanding ?? 0;
+  const credit = ctx.balances?.credit ?? 0;
   
   return {
     student: ctx.student as StudentRow | null,
@@ -67,8 +72,12 @@ export function useAppData() {
     balances: {
       totalPaid,
       outstanding,
+      credit,
       completion: ctx.balances?.completion ?? 0
     },
+    programme: ctx.programme as ProgrammeRow | null,
+    programmeName: ctx.programme?.prog_name ?? "Not assigned",
+    programmeDurationYears: ctx.programme?.duration_years ?? null,
     loading: ctx.loading,
   } as const;
 }

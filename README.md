@@ -266,3 +266,4 @@ Please follow the existing code style and include tests for new behavior where a
 
 ---
 NB: This application requires users to already exist in the studenttable and their work is to just activate their accounts,the required data for entering new record is their email,full name,current level, department id,role(The default role is student ) but can be made admin to fit needs,index number and then prog_id. All necesary logins would be included in the env files ie. Supabase.
+This project has been hosted on vercel here is the link https://nova-mauve-nu.vercel.app/.

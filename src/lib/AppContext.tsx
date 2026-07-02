@@ -3,6 +3,7 @@ import { supabase } from "./supabase";
 import { useAuth } from "./useAuth";
 import type { StudentRow, TransactionRow, ReceiptRow, FeeRow, ProgrammeRow } from "./useAppData";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNotifications } from "@/hooks/useNotifications";
 
 type Notification = { id: string; type: "payment" | "reminder" | "announcement"; title: string; body: string; date: string; read: boolean };
 export type FeeBalanceRow = {
@@ -55,7 +56,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [feeBalances, setFeeBalances] = useState<FeeBalanceRow[]>([]);
   const [programme, setProgramme] = useState<ProgrammeRow | null>(null);
   const [loading, setLoading] = useState(true);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const lastLoadedId = useRef<string | null>(null);
@@ -63,6 +63,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const authId = useMemo(() => session?.user?.id ?? authUser?.auth_user_id ?? null, [session, authUser]);
   const authEmail = useMemo(() => session?.user?.email ?? null, [session]);
+
+  // Real notifications, backed by Supabase + realtime — replaces the old local useState stub.
+  const { notifications, markNotificationsRead } = useNotifications(authId ?? undefined);
 
   const signOut = async () => {
     setIsLoggingOut(true);
@@ -73,8 +76,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     window.location.href = '/login';
   };
 
-  // Core data loader, extracted so it can be called both on auth change
-  // and on-demand (e.g. after an insert/upsert from another page).
   const load = useCallback(async (identity: string, currentAuthId: string | null) => {
     setLoading(true);
     try {
@@ -168,14 +169,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => { mountedRef.current = false; };
   }, [authId, authEmail, authLoading, isLoggingOut, load]);
 
-  // Public refresh function — call this after any insert/upsert/delete
-  // (e.g. CSV import, manual student add) so context state stays in sync
-  // with the database without requiring a full page reload.
   const refreshData = useCallback(async () => {
     const identity = authId ?? authEmail;
     if (!identity) return;
-    // Force a reload even if identity hasn't changed, by bypassing the
-    // lastLoadedId guard.
     await load(identity, authId);
   }, [authId, authEmail, load]);
 
@@ -199,10 +195,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return acc;
     }, {});
 
-    // Walk every fee that applies to this student — not just the ones that
-    // already have a fee_balances row. A year with no row yet simply means
-    // "no payment has happened for it", which should count as fully
-    // outstanding (paid = 0, outstanding = target), not as zero everything.
     let totalPaid = 0;
     let outstanding = 0;
     let credit = 0;
@@ -216,7 +208,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         outstanding += Number(bal.outstanding ?? 0);
         credit += Number(bal.credit ?? 0);
       } else {
-        // No fee_balances row yet for this year — nothing paid, full amount owed.
         outstanding += target;
       }
     });
@@ -234,8 +225,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(() => ({
     session, authUser, student, students, transactions, receipts, fees, feeBalances, programme, balances, loading, notifications, isLoggingOut,
-    signInWithGoogle: async () => {}, signOut, markNotificationsRead: async () => {}, refreshData,
-  }), [session, authUser, student, students, transactions, receipts, fees, feeBalances, programme, balances, loading, notifications, isLoggingOut, refreshData]);
+    signInWithGoogle: async () => {}, signOut, markNotificationsRead, refreshData,
+  }), [session, authUser, student, students, transactions, receipts, fees, feeBalances, programme, balances, loading, notifications, isLoggingOut, markNotificationsRead, refreshData]);
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }
